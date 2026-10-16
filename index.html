@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="A detective game about how you can prove you own something without showing it.">
+<title>The Stolen Model Case</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one evidence card at a time, a row of exhibit tags A–F as progress, yellow tag as the single bold element */
+:root {
+  --bg: #e9edf3;
+  --surface: #fbfcfe;
+  --ink: #18223a;
+  --muted: #56617a;
+  --line: #ccd3df;
+  --tag: #f2c230;
+  --tag-ink: #1b1b14;
+  --good: #1f7a4d;
+  --good-bg: #e2f3ea;
+  --bad: #b3372b;
+  --bad-bg: #f8e4e1;
+  --btn: #ffffff;
+  --btn-hover: #f1f4f9;
+  --font-display: "Archivo Black", "Arial Black", Impact, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", Verdana, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1420; --surface: #182031; --ink: #e5e9f2; --muted: #9aa5bd; --line: #2d384f;
+    --tag: #e8b72a; --tag-ink: #1b1b14; --good: #6fd19d; --good-bg: #173527; --bad: #f08a7e; --bad-bg: #3a1d1b;
+    --btn: #1f2a3f; --btn-hover: #27344d; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1420; --surface: #182031; --ink: #e5e9f2; --muted: #9aa5bd; --line: #2d384f;
+  --tag: #e8b72a; --tag-ink: #1b1b14; --good: #6fd19d; --good-bg: #173527; --bad: #f08a7e; --bad-bg: #3a1d1b;
+  --btn: #1f2a3f; --btn-hover: #27344d; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.55;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { font-family: var(--font-display); font-size: 15px; letter-spacing: .04em; text-transform: uppercase; }
+.score { font-family: var(--font-mono); font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tags { display: flex; gap: 6px; }
+.mini {
+  width: 30px; height: 22px; border-radius: 4px 4px 4px 4px; display: grid; place-items: center;
+  font-family: var(--font-display); font-size: 12px; border: 1.5px solid var(--line); color: var(--muted); background: var(--surface);
+}
+.mini.done { background: var(--tag); color: var(--tag-ink); border-color: var(--tag); }
+.mini.now { border-color: var(--ink); color: var(--ink); }
+.card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px 20px 24px;
+  display: flex; flex-direction: column; gap: 16px; min-width: 0;
+}
+.exhibit {
+  align-self: flex-start; position: relative; background: var(--tag); color: var(--tag-ink);
+  font-family: var(--font-display); font-size: 13px; letter-spacing: .08em; text-transform: uppercase;
+  padding: 6px 14px 6px 30px; border-radius: 4px 14px 14px 4px;
+}
+.exhibit::before {
+  content: ""; position: absolute; left: 11px; top: 50%; width: 9px; height: 9px; margin-top: -4.5px;
+  border-radius: 50%; background: var(--surface); box-shadow: inset 0 0 0 1.5px rgba(0,0,0,.25);
+}
+h1, h2 { font-family: var(--font-display); font-weight: 400; line-height: 1.12; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(30px, 8vw, 44px); }
+h2 { font-size: clamp(24px, 6vw, 30px); }
+h3 { font-family: var(--font-display); font-weight: 400; font-size: 18px; letter-spacing: .02em; margin: 6px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
+.learnt { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 8px; max-width: 62ch; }
+.learnt b { font-weight: 700; }
+p { margin: 0; max-width: 62ch; }
+.muted { color: var(--muted); }
+.q { font-size: 19px; font-weight: 700; }
+.opts { display: flex; flex-direction: column; gap: 10px; }
+button {
+  font: inherit; color: var(--ink); background: var(--btn); border: 1.5px solid var(--line); border-radius: 10px;
+  padding: 13px 16px; text-align: left; cursor: pointer; transition: background .15s, border-color .15s;
+}
+button:hover:not(:disabled) { background: var(--btn-hover); border-color: var(--muted); }
+button:focus-visible { outline: 3px solid var(--tag); outline-offset: 2px; }
+button:disabled { cursor: default; }
+button.right { background: var(--good-bg); border-color: var(--good); color: var(--ink); }
+button.wrong { background: var(--bad-bg); border-color: var(--bad); color: var(--ink); }
+.go {
+  align-self: flex-start; background: var(--ink); color: var(--surface); border-color: var(--ink);
+  font-weight: 700; text-align: center; padding: 13px 22px;
+}
+.go:hover:not(:disabled) { background: var(--ink); opacity: .88; border-color: var(--ink); }
+.verdict { border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.verdict.ok { background: var(--good-bg); }
+.verdict.no { background: var(--bad-bg); }
+.verdict strong { font-family: var(--font-display); font-weight: 400; font-size: 16px; letter-spacing: .02em; }
+.verdict.ok strong { color: var(--good); }
+.verdict.no strong { color: var(--bad); }
+.widget { border: 1.5px dashed var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.widget label { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
+input[type="text"] {
+  font: inherit; width: 100%; padding: 11px 12px; border-radius: 8px; border: 1.5px solid var(--line);
+  background: var(--bg); color: var(--ink);
+}
+input[type="text"]:focus-visible { outline: 3px solid var(--tag); outline-offset: 1px; }
+.hash { font-family: var(--font-mono); font-size: 14px; word-break: break-all; color: var(--ink); background: var(--bg); padding: 10px 12px; border-radius: 8px; }
+pre.bracket { font-family: var(--font-mono); font-size: 13px; line-height: 1.4; margin: 0; overflow-x: auto; color: var(--ink); background: var(--bg); padding: 12px; border-radius: 8px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row button { flex: 1 1 120px; text-align: center; font-weight: 700; }
+.cave-log { font-family: var(--font-mono); font-size: 14px; min-height: 1.5em; }
+.stats { display: flex; gap: 18px; font-family: var(--font-mono); font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.terms { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.terms li { display: flex; gap: 10px; align-items: baseline; }
+.terms b { min-width: 9.5em; }
+@media (max-width: 420px) { .terms li { flex-direction: column; gap: 0; } .terms b { min-width: 0; } }
+.foot { font-size: 13px; color: var(--muted); text-align: center; }
+@media (prefers-reduced-motion: no-preference) {
+  .card { animation: rise .28s ease-out both; }
+  @keyframes rise { from { transform: translateY(6px); } to { transform: none; } }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand">The Stolen Model Case</div>
+    <div class="score" id="score">Score 0 / 17</div>
+  </div>
+  <div class="tags" id="tags" aria-label="Progress"><span class="mini">A</span><span class="mini">B</span><span class="mini">C</span><span class="mini">D</span><span class="mini">E</span><span class="mini">F</span></div>
+  <main id="app"><section class="card">
+    <span class="exhibit">Case file</span>
+    <h1>Can you prove it's yours without showing it?</h1>
+    <p>Someone has stolen a valuable AI model and says they built it. To win the case, the real owner has to prove they made it, without giving away any of their secrets.</p>
+    <p>Work through six exhibits. Each one is a story, a few quick questions, and sometimes a gadget to try. No maths needed.</p>
+    <button class="go" id="start">Open the case</button>
+  </section></main>
+  <p class="foot">A detective game about how you can prove you own something without showing it.</p>
+</div>
+
+<script>
+const CHAPTERS = [
+  {
+    ex: "A", title: "Fingerprints",
+    story: [
+      "Every case starts with fingerprints. A computer can make a fingerprint for any piece of data: a word, a photo, a whole film. It's a short code called a <b>hash</b>.",
+      "Try the fingerprint machine. Type anything, then change a single letter and watch what happens."
+    ],
+    widget: "hash",
+    qs: [
+      { q: "You type the exact same thing twice. Do you get the same fingerprint?", o: ["Yes, exactly the same", "No, it changes every time"], a: 0,
+        why: "Same input, same fingerprint, every time. Investigators use this to prove evidence hasn't been touched: fingerprint it on day one, check it again in court." },
+      { q: "You change just one letter. How much of the fingerprint changes?", o: ["Just one character", "About half of it", "The whole thing looks different"], a: 2,
+        why: "One tiny change scrambles the whole fingerprint. That makes even the smallest edit easy to spot." },
+      { q: "Someone sees only your fingerprint. Can they work out what you typed?", o: ["Yes, easily", "No"], a: 1,
+        why: "It only works one way. You can't rebuild a person from their fingerprint, and you can't rebuild the data from its hash." }
+    ]
+  },
+  {
+    ex: "B", title: "The sealed envelope",
+    story: [
+      "You want to prove tomorrow that you knew tonight's football result, without telling anyone today.",
+      "So you write the winner on a note, seal it in an envelope, and stick the note's <b>fingerprint</b> on the fridge for everyone to see. Tomorrow you open the envelope and anyone can check it matches."
+    ],
+    qs: [
+      { q: "Once the fingerprint is on the fridge, can you secretly swap the note for a different team?", o: ["Yes", "No"], a: 1,
+        why: "A different note gives a different fingerprint, so it won't match the fridge. You're locked in." },
+      { q: "Your note just says \"Chelsea\". Your nosy brother fingerprints every team name until one matches the fridge. Does it work?", o: ["Yes, he finds it", "No, he can't"], a: 0,
+        why: "There are only 20 teams to try, so guessing works. The fingerprint hides the note, but not if the answer is easy to guess." },
+      { q: "How do you stop him?", o: ["Write in bigger letters", "Add a secret random code to the note before sealing it", "Hide the fridge"], a: 1,
+        why: "The secret random code is called a <b>salt</b>. Now \"Chelsea + x7Qk2…\" has a fingerprint no guess will match, and you reveal the code tomorrow with the note." }
+    ]
+  },
+  {
+    ex: "C", title: "The chained notebook",
+    story: [
+      "Picture a notebook where every new page starts by copying the <b>fingerprint of the page before it</b>. Each page is chained to the last one.",
+      "This is the idea behind a <b>blockchain</b>: a record that can't be quietly edited."
+    ],
+    qs: [
+      { q: "A cheat secretly rewrites page 2. Which page gives them away?", o: ["Page 1", "Page 2", "Page 3"], a: 2,
+        why: "Page 2 looks fine on its own. But page 3 still holds page 2's old fingerprint, and it no longer matches." },
+      { q: "So the cheat rewrites page 3 and every page after it. Their notebook now checks out perfectly. How are they caught?", o: ["They get away with it", "Thousands of people hold copies of the real notebook, and the fake doesn't match them"], a: 1,
+        why: "A fake can be perfectly consistent with itself and still be different. Comparing against everyone else's copy exposes it." }
+    ]
+  },
+  {
+    ex: "D", title: "The tournament",
+    story: [
+      "Four players, one knockout tournament. Everyone already knows who won the final.",
+      "Someone asks you to prove Player 3 took part, without showing every match."
+    ],
+    widget: "bracket",
+    qs: [
+      { q: "How many results do you need to show?", o: ["1", "2", "4"], a: 1,
+        why: "Show Player 3's match against Player 4, then Semi 2 against Semi 1. That traces all the way up to the final everyone knows. Computers use this trick, called a <b>Merkle tree</b>, to check one item in a huge list." },
+      { q: "Now there are 8 players. How many results do you need?", o: ["3", "4", "8"], a: 0,
+        why: "Doubling the players adds just one more result. With a million players you'd need only about 20." }
+    ]
+  },
+  {
+    ex: "E", title: "The magic cave",
+    story: [
+      "A cave has a ring-shaped tunnel with a locked magic door at the back. <b>Peggy</b> says she knows the password.",
+      "<b>Victor</b> waits outside while Peggy walks in and picks the left or right path. Then Victor shouts which side she must come out of. If she knows the password, she can always do it by going through the door. Can a bluffer? Try it."
+    ],
+    widget: "cave",
+    qs: [
+      { q: "Peggy really knows the password. Out of 10 rounds, how many does she pass?", o: ["All 10", "About 5", "None"], a: 0,
+        why: "If she's on the wrong side, she just opens the door. The honest person always passes." },
+      { q: "A bluffer doesn't know the password. What's her chance of passing one round?", o: ["1 in 2", "1 in 10", "Impossible"], a: 0,
+        why: "It's a coin flip whether she picked the side Victor shouts." },
+      { q: "What about passing 20 rounds in a row?", o: ["About 1 in 100", "About 1 in 1,000", "About 1 in a million"], a: 2,
+        why: "Every round halves her chance. Ten rounds is about 1 in 1,000, and twenty is about 1 in a million." },
+      { q: "After 20 rounds, Victor is convinced. Does Victor know the password now?", o: ["Yes", "No"], a: 1,
+        why: "He's convinced but learned nothing he could use himself. That's a <b>zero-knowledge proof</b>: proving you know a secret without revealing it." }
+    ]
+  },
+  {
+    ex: "F", title: "Catch the faker",
+    story: [
+      "Now the real case. A company trains an AI model, which takes months and costs a fortune. A thief copies the finished model and claims they built it.",
+      "To prove who really trained it, the company keeps a log of the training, like a <b>GPS log of a walk to the park</b>. The thief only knows where the park is, so they must fake a log. A checker uses two rules: <b>Rule 1, no teleporting</b> (every step is small), and <b>Rule 2, start far away</b> (you came from somewhere)."
+    ],
+    qs: [
+      { q: "Faker A logs one point at a house, then the next point at the park. Which rule catches him?", o: ["Rule 1", "Rule 2", "Neither"], a: 0,
+        why: "One giant step from house to park is a teleport." },
+      { q: "Faker B's log starts at the park and shuffles around on the spot. Which rule catches him?", o: ["Rule 1", "Rule 2", "Neither"], a: 1,
+        why: "His steps are tiny, but he never came from anywhere." },
+      { q: "Faker C starts far away and logs a perfectly straight line of tiny steps to the park. Which rule catches him?", o: ["Rule 1", "Rule 2", "Neither"], a: 2,
+        why: "He fools both rules. But real walks never go in a perfectly straight line, so a new rule can catch him. Every new rule invites a smarter faker, which is what makes this a real research problem." }
+    ]
+  }
+];
+const TOTAL = CHAPTERS.reduce((n, c) => n + c.qs.length, 0);
+
+let S = { screen: "intro", ch: 0, qi: 0, score: 0, picked: null, done: [] };
+const app = document.getElementById("app");
+
+function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; }
+
+function renderTags() {
+  const box = document.getElementById("tags");
+  box.innerHTML = CHAPTERS.map((c, i) => {
+    const cls = S.done.includes(i) ? "done" : (S.screen !== "intro" && S.screen !== "end" && i === S.ch ? "now" : "");
+    return `<span class="mini ${cls}" title="Exhibit ${c.ex}: ${c.title}">${c.ex}</span>`;
+  }).join("");
+  document.getElementById("score").textContent = `Score ${S.score} / ${TOTAL}`;
+}
+
+function render() {
+  renderTags();
+  app.innerHTML = "";
+  if (S.screen === "intro") return renderIntro();
+  if (S.screen === "story") return renderStory();
+  if (S.screen === "question") return renderQuestion();
+  if (S.screen === "end") return renderEnd();
+}
+
+function renderIntro() {
+  const c = el(`<section class="card">
+    <span class="exhibit">Case file</span>
+    <h1>Can you prove it's yours without showing it?</h1>
+    <p>Someone has stolen a valuable AI model and says they built it. To win the case, the real owner has to prove they made it, without giving away any of their secrets.</p>
+    <p>Work through six exhibits. Each one is a story, a few quick questions, and sometimes a gadget to try. No maths needed.</p>
+    <button class="go" id="start">Open the case</button>
+  </section>`);
+  app.append(c);
+  c.querySelector("#start").onclick = () => { S.screen = "story"; S.ch = 0; render(); };
+}
+
+function renderStory() {
+  const ch = CHAPTERS[S.ch];
+  const c = el(`<section class="card">
+    <span class="exhibit">Exhibit ${ch.ex}</span>
+    <h2>${ch.title}</h2>
+    ${ch.story.map(p => `<p>${p}</p>`).join("")}
+    <div id="widget"></div>
+    <button class="go" id="next">Answer the questions</button>
+  </section>`);
+  app.append(c);
+  const w = c.querySelector("#widget");
+  if (ch.widget === "hash") hashWidget(w);
+  else if (ch.widget === "bracket") w.replaceWith(el(`<pre class="bracket" aria-label="Tournament bracket">
+          Final
+        /       \\
+   Semi 1      Semi 2
+   /    \\      /    \\
+  P1    P2    P3    P4</pre>`));
+  else if (ch.widget === "cave") caveWidget(w);
+  else w.remove();
+  c.querySelector("#next").onclick = () => { S.screen = "question"; S.qi = 0; S.picked = null; render(); };
+}
+
+function renderQuestion() {
+  const ch = CHAPTERS[S.ch], q = ch.qs[S.qi];
+  const answered = S.picked !== null, correct = S.picked === q.a;
+  const c = el(`<section class="card">
+    <span class="exhibit">Exhibit ${ch.ex} · Question ${S.qi + 1} of ${ch.qs.length}</span>
+    <p class="q">${q.q}</p>
+    <div class="opts">${q.o.map((o, i) => {
+      let cls = "";
+      if (answered && i === q.a) cls = "right";
+      else if (answered && i === S.picked) cls = "wrong";
+      return `<button data-i="${i}" class="${cls}" ${answered ? "disabled" : ""}>${o}</button>`;
+    }).join("")}</div>
+    ${answered ? `<div class="verdict ${correct ? "ok" : "no"}"><strong>${correct ? "Correct" : "Not quite"}</strong><p>${q.why}</p></div>
+      <button class="go" id="next">${S.qi + 1 < ch.qs.length ? "Next question" : (S.ch + 1 < CHAPTERS.length ? "Next exhibit" : "Close the case")}</button>` : ""}
+  </section>`);
+  app.append(c);
+  c.querySelectorAll(".opts button").forEach(b => b.onclick = () => {
+    S.picked = +b.dataset.i;
+    if (S.picked === q.a) S.score++;
+    render();
+  });
+  const n = c.querySelector("#next");
+  if (n) {
+    n.onclick = () => {
+      if (S.qi + 1 < ch.qs.length) { S.qi++; S.picked = null; S.screen = "question"; }
+      else {
+        if (!S.done.includes(S.ch)) S.done.push(S.ch);
+        if (S.ch + 1 < CHAPTERS.length) { S.ch++; S.screen = "story"; }
+        else S.screen = "end";
+        S.picked = null;
+      }
+      render();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+    n.focus({ preventScroll: true });
+  }
+}
+
+function renderEnd() {
+  const pct = S.score / TOTAL;
+  const rank = pct === 1 ? "Chief Inspector" : pct >= 0.75 ? "Senior Detective" : pct >= 0.5 ? "Detective" : "Trainee Detective";
+  const c = el(`<section class="card">
+    <span class="exhibit">Case closed</span>
+    <h2>${rank}</h2>
+    <p>You scored <b>${S.score} out of ${TOTAL}</b>.</p>
+    <p>You've just walked through the real ideas behind a research paper called A2-DIDM. It lets the true owner of an AI model prove they trained it, without revealing the model or the data it learned from.</p>
+    <ul class="terms">
+      <li><b>Fingerprints</b><span>Hashes, which spot any change</span></li>
+      <li><b>Sealed envelope</b><span>Commitments, which lock in a secret</span></li>
+      <li><b>Chained notebook</b><span>A blockchain, a record nobody can quietly edit</span></li>
+      <li><b>Tournament</b><span>A Merkle tree, which proves one item is in a list</span></li>
+      <li><b>Magic cave</b><span>A zero-knowledge proof, which proves without revealing</span></li>
+      <li><b>Catch the faker</b><span>Rules that spot a faked training history</span></li>
+    </ul>
+    <h3>What you learnt</h3>
+    <ul class="learnt">
+      <li>If anything changes, even one letter, its fingerprint changes completely. That's how tampering gets spotted.</li>
+      <li>You can lock in a secret today and reveal it later, and adding a random code stops anyone guessing it.</li>
+      <li>A chained record can't be quietly edited. Even a perfect-looking fake is caught by comparing it with everyone else's copy.</li>
+      <li>You can prove one thing is in a huge list by showing just a few pieces.</li>
+      <li>You can prove you know a secret without revealing it, and repeating the test makes bluffing almost impossible.</li>
+      <li>No single rule catches every faker. Each new rule invites a smarter one, which is why this is still being researched.</li>
+    </ul>
+    <h3>What my code shows</h3>
+    <p>I wrote 12 small Python programs to test each idea for real, rather than just reading about it. Here's what they showed:</p>
+    <ul class="learnt">
+      <li><b>Fingerprints:</b> running the same text twice gave the identical SHA-256 hash, and changing one character gave a completely different one.</li>
+      <li><b>Sealed envelope:</b> the honest reveal checked out and a swapped answer failed. With the random code removed, I cracked the sealed answer just by guessing it.</li>
+      <li><b>Chained notebook:</b> editing one block broke the chain. A thief's rebuilt chain passed its own check but didn't match the copy everyone already had.</li>
+      <li><b>Tournament:</b> changing one item changed the top result. Proving one item took 2 results with 4 items and 3 with 8.</li>
+      <li><b>Magic cave:</b> the honest proof was accepted, a fake one was rejected, and the secret was never revealed. In 100,000 simulated cave games, the bluffer never once survived 20 rounds.</li>
+      <li><b>Catch the faker:</b> I built four fakers and designed my own rules to catch each one, checking every time that the real owner wasn't wrongly accused.</li>
+    </ul>
+    <button class="go" id="again">Play again</button>
+  </section>`);
+  app.append(c);
+  c.querySelector("#again").onclick = () => { S = { screen: "intro", ch: 0, qi: 0, score: 0, picked: null, done: [] }; render(); };
+}
+
+/* ---- Exhibit A: live fingerprint machine ---- */
+function fallbackHash(str) {
+  let out = "";
+  for (let k = 0; k < 8; k++) {
+    let h = 0x811c9dc5 ^ (k * 0x9e3779b1);
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d) >>> 0; h ^= h >>> 12;
+    out += (h >>> 0).toString(16).padStart(8, "0");
+  }
+  return out;
+}
+async function sha256(str) {
+  try {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+  } catch (e) { return fallbackHash(str); }
+}
+function hashWidget(w) {
+  const box = el(`<div class="widget">
+    <label for="hash-in">Type anything</label>
+    <input type="text" id="hash-in" value="Grandma's secret biryani recipe" autocomplete="off">
+    <label>Its fingerprint (hash)</label>
+    <div class="hash" id="hash-out">…</div>
+  </div>`);
+  w.replaceWith(box);
+  const inp = box.querySelector("#hash-in"), out = box.querySelector("#hash-out");
+  const run = async () => { const v = inp.value; const h = await sha256(v); if (inp.value === v) out.textContent = h; };
+  inp.addEventListener("input", run);
+  run();
+}
+
+/* ---- Exhibit E: play the bluffer ---- */
+function caveWidget(w) {
+  let streak = 0, best = 0, tries = 0;
+  const box = el(`<div class="widget">
+    <label>You're the bluffer. Pick a path</label>
+    <div class="row">
+      <button id="cave-l">Go left</button>
+      <button id="cave-r">Go right</button>
+    </div>
+    <div class="cave-log" id="cave-log" aria-live="polite">Victor is waiting outside.</div>
+    <div class="stats"><span id="cave-streak">Rounds survived: 0</span><span id="cave-best">Best: 0</span><span id="cave-tries">Attempts: 0</span></div>
+  </div>`);
+  w.replaceWith(box);
+  const log = box.querySelector("#cave-log");
+  const play = side => {
+    const shout = Math.random() < 0.5 ? "left" : "right";
+    if (shout === side) {
+      streak++; best = Math.max(best, streak);
+      log.textContent = `Victor shouts "${shout}!" Phew, you were already there. Keep going.`;
+    } else {
+      tries++;
+      log.textContent = `Victor shouts "${shout}!" You're stuck on the wrong side. Caught after ${streak} round${streak === 1 ? "" : "s"}.`;
+      streak = 0;
+    }
+    box.querySelector("#cave-streak").textContent = `Rounds survived: ${streak}`;
+    box.querySelector("#cave-best").textContent = `Best: ${best}`;
+    box.querySelector("#cave-tries").textContent = `Attempts: ${tries}`;
+  };
+  box.querySelector("#cave-l").onclick = () => play("left");
+  box.querySelector("#cave-r").onclick = () => play("right");
+}
+
+/* start the game straight away; live-update progress keeping is optional */
+render();
+try {
+  const hot = window.claude && window.claude.hot;
+  if (hot && typeof hot.snapshot === "function") hot.snapshot(() => S);
+  const restore = data => { if (data && data.screen) { S = data; render(); } };
+  if (hot && typeof hot.ready === "function") hot.ready(restore);
+  else if (hot && hot.data) restore(hot.data);
+} catch (e) { /* the game works without it */ }
+</script>
+
+</body>
+</html>

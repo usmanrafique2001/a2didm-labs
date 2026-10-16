@@ -1,0 +1,48 @@
+import random, math
+
+random.seed(7)
+N = 50                                      # a tiny "model" with 50 weights
+
+def random_weights():
+    return [random.gauss(0, 1) for _ in range(N)]
+
+def distance(a, b):
+    return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
+
+# --- The real owner trains: random start, many small noisy steps ---
+start = random_weights()
+target = random_weights()                   # where training ends up
+real = [start]
+w = start
+for _ in range(30):
+    w = [x + 0.15 * (t - x) + random.gauss(0, 0.05) for x, t in zip(w, target)]
+    real.append(w)
+final = real[-1]                            # the finished model (the thief has this)
+
+# --- The rules (predicates) ---
+MAX_STEP = 3.0                              # rule 1: each step must be small
+MIN_START_DISTANCE = 6.0                    # rule 2: start must be far from the final model
+
+def small_steps(history):
+    return all(distance(history[i], history[i + 1]) < MAX_STEP for i in range(len(history) - 1))
+
+def far_start(history):
+    return distance(history[0], history[-1]) > MIN_START_DISTANCE
+
+def check(name, history):
+    print(f"{name:<32} small steps: {small_steps(history)!s:<6} far start: {far_start(history)}")
+
+# --- Faker A: random start, then one giant jump to the final model ---
+faker_a = [random_weights(), final]
+
+# --- Faker B: start as a copy of the final model, plus tiny wiggles ---
+faker_b = [[x + random.gauss(0, 0.05) for x in final] for _ in range(30)] + [final]
+
+# --- Faker C: random start, then a straight line of tiny steps to the final ---
+s = random_weights()
+faker_c = [[a + (b - a) * k / 30 for a, b in zip(s, final)] for k in range(31)]
+
+check("1. real owner", real)
+check("2. faker A (one big jump)", faker_a)
+check("3. faker B (starts at the end)", faker_b)
+check("4. faker C (straight tiny steps)", faker_c)
