@@ -123,6 +123,17 @@ pre.bracket { font-family: var(--font-mono); font-size: 13px; line-height: 1.4; 
 .terms b { min-width: 9.5em; }
 @media (max-width: 420px) { .terms li { flex-direction: column; gap: 0; } .terms b { min-width: 0; } }
 .foot { font-size: 13px; color: var(--muted); text-align: center; }
+.codebox { border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.codehead { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 14px; background: var(--bg); }
+.codehead .file { font-family: var(--font-mono); font-size: 14px; font-weight: 500; }
+.codehead a { font-size: 14px; color: var(--ink); font-weight: 700; }
+.codehead a:focus-visible { outline: 3px solid var(--tag); outline-offset: 2px; }
+.codeintro { padding: 10px 14px 0; font-size: 15px; color: var(--muted); }
+.codeline { padding: 10px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.codeline + .codeline { border-top: 1px dashed var(--line); }
+.codeline pre { margin: 0; overflow-x: auto; background: var(--bg); border-left: 3px solid var(--tag); border-radius: 4px; padding: 8px 10px; }
+.codeline code { font-family: var(--font-mono); font-size: 13.5px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); }
+.codeline p { font-size: 15px; }
 @media (prefers-reduced-motion: no-preference) {
   .card { animation: rise .28s ease-out both; }
   @keyframes rise { from { transform: translateY(6px); } to { transform: none; } }
@@ -243,6 +254,60 @@ const CHAPTERS = [
 ];
 const TOTAL = CHAPTERS.reduce((n, c) => n + c.qs.length, 0);
 
+/* The real lines from my labs that each exhibit is based on */
+const REPO = "https://github.com/usmanrafique2001/a2didm-labs/blob/main/";
+const CODE = [
+  [{ file: "lab1.sh", intro: "My first lab ran the fingerprint machine in the Linux terminal.", lines: [
+    ['echo -n "model weight v1" | sha256sum', "Feeds the text into SHA-256, the fingerprint machine."],
+    ["c5a4d275da82de85f6ce…da718dcabbb", "The fingerprint it printed."],
+    ['echo -n "model weight v2" | sha256sum', "Change one character..."],
+    ["840945c03a28972412d4…bb78447e4", "...and the fingerprint is completely different."]
+  ]}],
+  [{ file: "lab2.py", intro: "Sealing and opening the envelope, in Python.", lines: [
+    ["salt = secrets.token_bytes(16)", "Picks the secret random code: 16 random bytes."],
+    ["c = hashlib.sha256(salt + value).hexdigest()", "Seals it: the fingerprint of code + note. This is what goes on the fridge."],
+    ["return hashlib.sha256(salt + value).hexdigest() == c", "Opens it: makes the fingerprint again and checks it matches the fridge."]
+  ]}],
+  [{ file: "lab3.py", intro: "Each block in my toy blockchain carries the previous block's fingerprint.", lines: [
+    ['block = {"index": i, "data": msg, "prev": prev}', '"prev" is the copied fingerprint of the page before.'],
+    ['chain[1]["data"] = "forged ckpt 2"', "The cheat rewrites page 2."],
+    ['if b["prev"] != prev:', "The checker re-makes each fingerprint and compares it with the next page..."],
+    ["    return False", "...so the next page exposes the edit."]
+  ]}],
+  [{ file: "lab7.py", intro: "Proving one item is in the tournament without showing every match.", lines: [
+    ["sibling = index ^ 1", "Finds who this player played in each round."],
+    ["path.append((side, level[sibling]))", "Collects just those results. That list is the proof."],
+    ['h = H(sibling + h) if side == "left" else H(h + sibling)', "The checker replays the matches upward..."],
+    ["return h == root", "...and checks it arrives at the final everyone knows."]
+  ]}],
+  [{ file: "lab8.py", intro: "I simulated the cave game 100,000 times.", lines: [
+    ['peggy_side = random.choice(["left", "right"])', "Peggy picks a path at random."],
+    ['victor_shouts = random.choice(["left", "right"])', "Victor shouts a side at random."],
+    ["if peggy_side != victor_shouts and not knows_password:", "A bluffer on the wrong side..."],
+    ["    return False", "...is caught. In 100,000 games, no bluffer survived 20 rounds."]
+  ]}, { file: "lab5.py", intro: "And a real zero-knowledge proof, the Schnorr protocol.", lines: [
+    ["r = secrets.randbelow(q)", "A fresh random number, like Peggy's random choice of path."],
+    ["s = (r + c * x) % q", "The answer mixes the secret x with r, so it never gives x away."],
+    ["return pow(g, s, p) == (t * pow(y, c, p)) % p", "Victor checks it using only public numbers."]
+  ]}],
+  [{ file: "lab9b.py", intro: "The checker's rules, from my faker labs.", lines: [
+    ["MAX_STEP = 3.0", "Rule 1: no step can be bigger than this. No teleporting."],
+    ["MIN_START_DISTANCE = 6.0", "Rule 2: the walk must start at least this far away."],
+    ["walked = sum(distance(history[i], history[i + 1]) for i in range(len(history) - 1))", "My new rule adds up every step..."],
+    ["straight = distance(history[0], history[-1])", "...measures start to finish in a straight line..."],
+    ["return walked / straight > MIN_WANDER", "...and fails any path that's too straight. That catches Faker C."]
+  ]}]
+];
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+function codePanel(i) {
+  return `<h3>Where this happens in my code</h3>` + CODE[i].map(b => `
+    <div class="codebox">
+      <div class="codehead"><span class="file">${b.file}</span><a href="${REPO + b.file}" target="_blank" rel="noopener">Full file on GitHub</a></div>
+      <p class="codeintro">${b.intro}</p>
+      ${b.lines.map(([c, n]) => `<div class="codeline"><pre><code>${esc(c)}</code></pre><p>${n}</p></div>`).join("")}
+    </div>`).join("");
+}
+
 let S = { screen: "intro", ch: 0, qi: 0, score: 0, picked: null, done: [] };
 const app = document.getElementById("app");
 
@@ -313,7 +378,7 @@ function renderQuestion() {
       else if (answered && i === S.picked) cls = "wrong";
       return `<button data-i="${i}" class="${cls}" ${answered ? "disabled" : ""}>${o}</button>`;
     }).join("")}</div>
-    ${answered ? `<div class="verdict ${correct ? "ok" : "no"}"><strong>${correct ? "Correct" : "Not quite"}</strong><p>${q.why}</p></div>
+    ${answered ? `<div class="verdict ${correct ? "ok" : "no"}"><strong>${correct ? "Correct" : "Not quite"}</strong><p>${q.why}</p></div>${S.qi + 1 === ch.qs.length ? codePanel(S.ch) : ""}
       <button class="go" id="next">${S.qi + 1 < ch.qs.length ? "Next question" : (S.ch + 1 < CHAPTERS.length ? "Next exhibit" : "Close the case")}</button>` : ""}
   </section>`);
   app.append(c);
