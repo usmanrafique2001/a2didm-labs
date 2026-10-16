@@ -8,7 +8,7 @@ Paper: T. Xie, K. Gai, J. Yu and L. Zhu, *A2-DIDM: Privacy-preserving Accumulato
 
 ## Play the game
 
-**The Stolen Model Case** (`index.html`) is a short detective game that explains the same ideas through everyday stories, with no maths needed. It's hosted with GitHub Pages at `https://<your-username>.github.io/a2didm-labs/`.
+**The Stolen Model Case** (`index.html`) is a short detective game that explains the same ideas through everyday stories, with no maths needed. It's hosted with GitHub Pages at `https://usmanrafique2001.github.io/a2didm-labs/`.
 
 ## The labs
 
