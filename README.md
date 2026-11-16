@@ -42,4 +42,4 @@ The random labs (2, 5, 6, 6b, 8) print slightly different numbers each run, but 
 
 ## Author
 
-Usman Rafique, final-year cyber security and forensics student.
+Usman Rafique
